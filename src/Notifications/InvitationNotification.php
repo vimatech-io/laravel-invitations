@@ -60,7 +60,11 @@ class InvitationNotification extends Notification implements ShouldQueue
 
     protected function getExpirationLine(): string
     {
-        $date = $this->invitation->expires_at?->toFormattedDateString();
+        if (! $this->invitation->expires_at) {
+            return __('This invitation does not expire.');
+        }
+
+        $date = $this->invitation->expires_at->toFormattedDateString();
 
         return __('This invitation will expire on :date.', ['date' => $date]);
     }

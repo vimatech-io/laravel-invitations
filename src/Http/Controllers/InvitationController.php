@@ -19,13 +19,15 @@ use Vimatech\Invitation\InvitationManager;
 
 class InvitationController extends Controller
 {
+    public function __construct(
+        private readonly InvitationManager $manager,
+    ) {}
+
     public function preview(Request $request, string $token): View|RedirectResponse
     {
-        /** @var InvitationManager $manager */
-        $manager = app(InvitationManager::class);
-
         try {
-            $invitation = $manager->findByToken($token);
+            $invitation = $this->manager->findByToken($token);
+            $invitation->loadMissing(['inviter', 'subject']);
         } catch (InvitationNotFoundException) {
             return redirect()->back()->withErrors(['invitation' => __('Invalid invitation token.')]);
         }
@@ -53,10 +55,8 @@ class InvitationController extends Controller
         }
 
         try {
-            /** @var InvitationManager $manager */
-            $manager = app(InvitationManager::class);
             /** @var Model $user */
-            $manager->accept($token, $user);
+            $this->manager->accept($token, $user);
 
             return redirect()->back()->with('status', 'Invitation accepted successfully.');
         } catch (InvitationNotFoundException) {
@@ -67,15 +67,15 @@ class InvitationController extends Controller
             return redirect()->back()->withErrors(['invitation' => 'This invitation has already been accepted.']);
         } catch (InvitationCancelledException) {
             return redirect()->back()->withErrors(['invitation' => 'This invitation has been cancelled.']);
+        } catch (InvitationDeclinedException) {
+            return redirect()->back()->withErrors(['invitation' => 'This invitation has already been declined.']);
         }
     }
 
     public function decline(Request $request, string $token): RedirectResponse
     {
         try {
-            /** @var InvitationManager $manager */
-            $manager = app(InvitationManager::class);
-            $manager->decline($token);
+            $this->manager->decline($token);
 
             return redirect()->back()->with('status', 'Invitation declined.');
         } catch (InvitationNotFoundException) {

@@ -26,11 +26,11 @@
         @elseif($invitation->isDeclined())
             <p style="color: gray;">{{ __('This invitation has been declined.') }}</p>
         @elseif($user)
-            <form method="POST" action="{{ route('invitations.accept', ['token' => $token]) }}" style="display: inline;">
+            <form method="POST" action="{{ route(config('invitation.route_names.accept', 'invitations.accept'), ['token' => $token]) }}" style="display: inline;">
                 @csrf
                 <button type="submit">{{ __('Accept Invitation') }}</button>
             </form>
-            <form method="POST" action="{{ route('invitations.decline', ['token' => $token]) }}" style="display: inline; margin-left: 10px;">
+            <form method="POST" action="{{ route(config('invitation.route_names.decline', 'invitations.decline'), ['token' => $token]) }}" style="display: inline; margin-left: 10px;">
                 @csrf
                 <button type="submit" style="background: none; border: 1px solid gray; cursor: pointer;">{{ __('Decline') }}</button>
             </form>

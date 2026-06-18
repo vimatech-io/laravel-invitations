@@ -6,7 +6,6 @@ namespace Vimatech\Invitation;
 
 use Carbon\CarbonInterface;
 use Closure;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
@@ -205,12 +204,24 @@ class InvitationManager
             throw new InvitationExpiredException;
         }
 
-        $invitation->update([
-            'status' => InvitationStatus::Accepted,
-            'accepted_at' => now(),
-            'accepted_by_type' => $user?->getMorphClass(),
-            'accepted_by_id' => $user?->getKey(),
-        ]);
+        // Atomic update to prevent race conditions
+        $updated = $invitation->newQuery()
+            ->whereKey($invitation->getKey())
+            ->where('status', InvitationStatus::Pending)
+            ->update([
+                'status' => InvitationStatus::Accepted->value,
+                'accepted_at' => now(),
+                'accepted_by_type' => $user?->getMorphClass(),
+                'accepted_by_id' => $user?->getKey(),
+            ]);
+
+        if ($updated === 0) {
+            $invitation->refresh();
+
+            throw new InvitationAlreadyAcceptedException;
+        }
+
+        $invitation->refresh();
 
         $this->runAcceptanceHandler($invitation, $user);
 
@@ -241,6 +252,18 @@ class InvitationManager
      */
     public function cancel(Invitation $invitation): Invitation
     {
+        if ($invitation->isAccepted()) {
+            throw new InvitationAlreadyAcceptedException;
+        }
+
+        if ($invitation->isDeclined()) {
+            throw new InvitationDeclinedException;
+        }
+
+        if ($invitation->isCancelled()) {
+            throw new InvitationCancelledException;
+        }
+
         $invitation->update([
             'status' => InvitationStatus::Cancelled,
             'cancelled_at' => now(),
@@ -364,16 +387,8 @@ class InvitationManager
             throw new InvitationNotFoundException;
         }
 
-        // Bcrypt: must iterate, but exclude already expired/accepted to limit scope
-        /** @var Collection<int, Invitation> $invitations */
-        $invitations = $modelClass::query()
-            ->whereIn('status', [
-                InvitationStatus::Pending,
-                InvitationStatus::Cancelled,
-                InvitationStatus::Accepted,
-                InvitationStatus::Declined,
-            ])
-            ->get();
+        // Bcrypt: must iterate, but stream results to limit memory usage
+        $invitations = $modelClass::query()->lazyById(500);
 
         foreach ($invitations as $invitation) {
             if (InvitationToken::verify($token, $invitation->token_hash)) {

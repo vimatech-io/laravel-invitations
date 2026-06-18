@@ -64,6 +64,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Route Names
+    |--------------------------------------------------------------------------
+    | Named routes used in the preview view for form actions.
+    */
+    'route_names' => [
+        'preview' => 'invitations.preview',
+        'accept' => 'invitations.accept',
+        'decline' => 'invitations.decline',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Custom URL Generator
     |--------------------------------------------------------------------------
     | A callable or class that generates the invitation URL.

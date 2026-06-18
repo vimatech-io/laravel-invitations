@@ -177,6 +177,37 @@ it('can cancel an invitation', function () {
     Event::assertDispatched(InvitationCancelled::class);
 });
 
+it('throws when cancelling an already accepted invitation', function () {
+    $invitation = app(InvitationManager::class)
+        ->to('john@example.com')
+        ->create();
+
+    $user = User::create(['name' => 'John', 'email' => 'john@example.com']);
+    app(InvitationManager::class)->accept($invitation->plainToken, $user);
+
+    app(InvitationManager::class)->cancel($invitation->refresh());
+})->throws(InvitationAlreadyAcceptedException::class);
+
+it('throws when cancelling an already declined invitation', function () {
+    $invitation = app(InvitationManager::class)
+        ->to('john@example.com')
+        ->create();
+
+    app(InvitationManager::class)->decline($invitation->plainToken);
+
+    app(InvitationManager::class)->cancel($invitation->refresh());
+})->throws(InvitationDeclinedException::class);
+
+it('throws when cancelling an already cancelled invitation', function () {
+    $invitation = app(InvitationManager::class)
+        ->to('john@example.com')
+        ->create();
+
+    app(InvitationManager::class)->cancel($invitation);
+
+    app(InvitationManager::class)->cancel($invitation->refresh());
+})->throws(InvitationCancelledException::class);
+
 it('can resend an invitation', function () {
     Event::fake();
 
