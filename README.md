@@ -1,12 +1,44 @@
 # Laravel Invitation
 
+[![Tests](https://github.com/vimatech-io/laravel-invitations/actions/workflows/tests.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/tests.yml)
+[![PHPStan](https://github.com/vimatech-io/laravel-invitations/actions/workflows/phpstan.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/phpstan.yml)
+[![Pint](https://github.com/vimatech-io/laravel-invitations/actions/workflows/pint.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/pint.yml)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
+[![Total Downloads](https://img.shields.io/packagist/dt/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
+[![License](https://img.shields.io/packagist/l/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
+
 Generic email-based invitations for Laravel. Invite anyone to join, access, or accept an action related to any Eloquent model — Organization, Team, Project, Workspace, Document, and more.
+
+## Why Laravel Invitation?
+
+- Invite users to **any Eloquent model** — not just teams
+- Secure token-based workflow (HMAC by default)
+- Framework-agnostic — no dependency on Jetstream, Breeze, or any starter kit
+- Extensible acceptance handlers and custom notifications
+- Production-ready with queued emails, i18n, and rate-limited routes
+
+## Quick Start
+
+```php
+// 1. Send an invitation
+$invitation = Invitations::to('john@example.com')
+    ->for($project)
+    ->invitedBy(auth()->user())
+    ->send();
+
+// 2. Accept the invitation (via token from email)
+Invitations::accept($token, auth()->user());
+```
+
+```
+Invite → Email sent → User clicks link → Accept → Event dispatched
+```
 
 ## Features
 
 - Invite by email to any morphable model (or globally)
 - Secure HMAC-hashed tokens (never stored in plain text)
-- Fluent API for creating, sending, accepting, and cancelling invitations
+- Fluent API for creating, sending, accepting, declining, and cancelling
 - Typed exceptions for every error case
 - Events dispatched for every lifecycle action
 - Trait `HasInvitations` for any model
@@ -16,6 +48,40 @@ Generic email-based invitations for Laravel. Invite anyone to join, access, or a
 - Custom notification support (via config or class extension)
 - Email normalization (case-insensitive)
 - No dependency on any Laravel auth starter kit
+
+## How It Works
+
+```
+┌─────────────────┐
+│  Your App        │
+│  (Team, Project) │
+└────────┬────────┘
+         │ ->invite('john@example.com')
+         ▼
+┌─────────────────┐
+│ Create Invitation│
+│ (token generated)│
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Send Email      │
+│  (queued)        │
+└────────┬────────┘
+         │ User clicks link
+         ▼
+┌─────────────────┐
+│ Accept Invitation│
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│Acceptance Handler│
+│ (attach user)    │
+└─────────────────┘
+```
+
+> **Subject** — The model being invited to (Project, Team, Organization, Workspace, etc.). Set via `->for($model)`. An invitation without a subject is a "global" invitation.
 
 ## Requirements
 
@@ -28,7 +94,7 @@ Generic email-based invitations for Laravel. Invite anyone to join, access, or a
 composer require vimatech/laravel-invitation
 ```
 
-### Publish config
+### Publish the configuration file
 
 ```bash
 php artisan vendor:publish --tag="invitation-config"
@@ -80,18 +146,6 @@ $invitation = Invitations::to('john@example.com')
     ->invitedBy($currentUser)
     ->expiresInDays(7)
     ->withMeta(['role' => 'admin'])
-    ->send();
-```
-
-### Using the InvitationManager directly
-
-```php
-use Vimatech\Invitation\InvitationManager;
-
-$invitation = app(InvitationManager::class)
-    ->to('john@example.com')
-    ->for($project)
-    ->invitedBy($user)
     ->send();
 ```
 
@@ -178,6 +232,39 @@ Invitation::forSubject($project)->get();
 Invitation::invitedBy($user)->get();
 ```
 
+## Common Use Cases
+
+### Team invitation
+
+```php
+$team->invite('john@example.com')
+    ->invitedBy(auth()->user())
+    ->send();
+```
+
+### Organization with role
+
+```php
+$organization->invite('john@example.com')
+    ->withMeta(['role' => 'admin'])
+    ->send();
+```
+
+### Project collaboration
+
+```php
+$project->invite('john@example.com')
+    ->withMeta(['role' => 'editor', 'department' => 'engineering'])
+    ->expiresInDays(14)
+    ->send();
+```
+
+### Global invitation (no subject)
+
+```php
+Invitations::to('john@example.com')->send();
+```
+
 ## Metadata
 
 Store any custom data with an invitation:
@@ -221,6 +308,23 @@ Invitations::to('jane@example.com')
 // 'expires_after_days' => null,
 ```
 
+## Duplicate Policy
+
+By default, sending a second invitation to the same email for the same subject throws an `InvitationAlreadyExistsException`:
+
+```php
+$project->invite('john@example.com')->send(); // ✅
+$project->invite('john@example.com')->send(); // ❌ InvitationAlreadyExistsException
+```
+
+To allow duplicate pending invitations, set this in your config:
+
+```php
+'duplicates' => [
+    'allow_pending_for_same_email_and_subject' => true,
+],
+```
+
 ## Events
 
 The following events are dispatched:
@@ -236,6 +340,16 @@ The following events are dispatched:
 | `InvitationResent` | Invitation resent with new token |
 
 All events contain the `$invitation` property. `InvitationAccepted` also contains the `$user`.
+
+### Listening to events
+
+```php
+use Vimatech\Invitation\Events\InvitationAccepted;
+
+Event::listen(InvitationAccepted::class, function ($event) {
+    $event->invitation->subject->members()->attach($event->user);
+});
+```
 
 ## Custom Acceptance Handler
 
@@ -348,6 +462,41 @@ Configure in `config/invitation.php`:
 ],
 ```
 
+### Authentication and routes
+
+The **preview page** (`GET`) is public — anyone with the link can view the invitation details.
+
+The **accept route** (`POST`) does not enforce authentication by default. Two common patterns:
+
+- **Existing user**: Add `auth` middleware, then call `Invitations::accept($token, auth()->user())`
+- **New user**: Redirect to registration, then call `Invitations::acceptForNewUser($token, $newUser)` after signup — this verifies the registered email matches the invitation
+
+To require authentication, add `auth` to the route middleware in config:
+
+```php
+'middleware' => ['web', 'auth'],
+```
+
+## Database Schema
+
+```
+invitations
+├── id
+├── uuid
+├── email
+├── token_hash
+├── subject_type / subject_id    (polymorphic, nullable)
+├── inviter_type / inviter_id    (polymorphic, nullable)
+├── accepted_by_type / accepted_by_id (polymorphic, nullable)
+├── status                       (pending, accepted, declined, expired, cancelled)
+├── expires_at
+├── accepted_at
+├── declined_at
+├── cancelled_at
+├── meta                         (JSON)
+└── timestamps
+```
+
 ## Token Security
 
 - Tokens are generated using `Str::random(64)`
@@ -384,6 +533,20 @@ return [
 ];
 ```
 
+## Advanced Usage
+
+### Using the InvitationManager directly
+
+```php
+use Vimatech\Invitation\InvitationManager;
+
+$invitation = app(InvitationManager::class)
+    ->to('john@example.com')
+    ->for($project)
+    ->invitedBy($user)
+    ->send();
+```
+
 ## Testing
 
 ```bash
@@ -400,6 +563,10 @@ All exceptions extend `InvitationException`:
 - `InvitationCancelledException` — Invitation was cancelled
 - `InvitationDeclinedException` — Invitation was declined by invitee
 - `InvitationAlreadyExistsException` — Duplicate pending invitation
+
+## Credits
+
+Built and maintained by [Vimatech](https://vimatech.io/). Created by [Adel Zemzemi](https://github.com/adelzemzemi).
 
 ## License
 
