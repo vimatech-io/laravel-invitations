@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create(config('invitation.table', 'invitations'), function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->string('email')->index();
+            $table->string('token_hash')->index();
+            $table->nullableMorphs('subject');
+            $table->nullableMorphs('inviter');
+            $table->nullableMorphs('accepted_by');
+            $table->string('status')->default('pending')->index();
+            $table->timestamp('expires_at')->nullable()->index();
+            $table->timestamp('accepted_at')->nullable();
+            $table->timestamp('declined_at')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
+            $table->json('meta')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists(config('invitation.table', 'invitations'));
+    }
+};
