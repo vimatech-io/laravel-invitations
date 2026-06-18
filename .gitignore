@@ -1,0 +1,6 @@
+/vendor/
+/build/phpstan/cache/
+/node_modules/
+.phpunit.result.cache
+.phpunit.cache/
+composer.lock
