@@ -3,9 +3,7 @@
 [![Tests](https://github.com/vimatech-io/laravel-invitations/actions/workflows/tests.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/tests.yml)
 [![PHPStan](https://github.com/vimatech-io/laravel-invitations/actions/workflows/phpstan.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/phpstan.yml)
 [![Pint](https://github.com/vimatech-io/laravel-invitations/actions/workflows/pint.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/pint.yml)
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
-[![Total Downloads](https://img.shields.io/packagist/dt/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
-[![License](https://img.shields.io/packagist/l/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
 Generic email-based invitations for Laravel. Invite anyone to join, access, or accept an action related to any Eloquent model — Organization, Team, Project, Workspace, Document, and more.
 
@@ -94,7 +92,7 @@ Invite → Email sent → User clicks link → Accept → Event dispatched
 composer require vimatech/laravel-invitation
 ```
 
-### Publish the configuration file
+### Publish the configuration file (optional)
 
 ```bash
 php artisan vendor:publish --tag="invitation-config"
@@ -563,6 +561,24 @@ All exceptions extend `InvitationException`:
 - `InvitationCancelledException` — Invitation was cancelled
 - `InvitationDeclinedException` — Invitation was declined by invitee
 - `InvitationAlreadyExistsException` — Duplicate pending invitation
+
+## Contributing
+
+Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) before submitting a pull request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/my-feature`)
+3. Write tests for your changes
+4. Run the test suite (`composer test`) and static analysis (`composer analyse`)
+5. Submit a pull request
+
+## Changelog
+
+Please see [CHANGELOG.md](CHANGELOG.md) for recent changes.
+
+## Security
+
+If you discover a security vulnerability, please review our [security policy](SECURITY.md). **Do not** open a public GitHub issue.
 
 ## Credits
 
