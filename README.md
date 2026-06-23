@@ -32,53 +32,6 @@ Invitations::accept($token, auth()->user());
 Invite → Email sent → User clicks link → Accept → Event dispatched
 ```
 
-## Features
-
-- Invite by email to any morphable model (or globally)
-- Secure HMAC-hashed tokens (never stored in plain text)
-- Fluent API for creating, sending, accepting, declining, and cancelling
-- Typed exceptions for every error case
-- Events dispatched for every lifecycle action
-- Trait `HasInvitations` for any model
-- Configurable expiration, duplicate policy, and acceptance handler
-- Optional public routes with rate limiting for previewing/accepting invitations
-- Queued notifications with i18n support
-- Custom notification support (via config or class extension)
-- Email normalization (case-insensitive)
-- No dependency on any Laravel auth starter kit
-
-## How It Works
-
-```
-┌─────────────────┐
-│  Your App        │
-│  (Team, Project) │
-└────────┬────────┘
-         │ ->invite('john@example.com')
-         ▼
-┌─────────────────┐
-│ Create Invitation│
-│ (token generated)│
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Send Email      │
-│  (queued)        │
-└────────┬────────┘
-         │ User clicks link
-         ▼
-┌─────────────────┐
-│ Accept Invitation│
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│Acceptance Handler│
-│ (attach user)    │
-└─────────────────┘
-```
-
 > **Subject** — The model being invited to (Project, Team, Organization, Workspace, etc.). Set via `->for($model)`. An invitation without a subject is a "global" invitation.
 
 ## Requirements
@@ -137,8 +90,6 @@ $project->inviteUser($user)->send();
 ### Invitation linked to a model
 
 ```php
-use Vimatech\Invitation\Facades\Invitations;
-
 $invitation = Invitations::to('john@example.com')
     ->for($project)
     ->invitedBy($currentUser)
@@ -173,16 +124,12 @@ $project->pendingInvitations;
 ### Accepting an invitation
 
 ```php
-use Vimatech\Invitation\Facades\Invitations;
-
 $invitation = Invitations::accept($token, $user);
 ```
 
 ### Accepting after registration (new user)
 
 ```php
-use Vimatech\Invitation\Facades\Invitations;
-
 // After user registration (verifies the invitation email matches the user's email):
 $invitation = Invitations::acceptForNewUser($token, $newUser);
 ```
@@ -190,8 +137,6 @@ $invitation = Invitations::acceptForNewUser($token, $newUser);
 ### Cancelling an invitation
 
 ```php
-use Vimatech\Invitation\Facades\Invitations;
-
 Invitations::cancel($invitation);
 ```
 
@@ -200,8 +145,6 @@ Invitations::cancel($invitation);
 The invitee can actively refuse an invitation:
 
 ```php
-use Vimatech\Invitation\Facades\Invitations;
-
 Invitations::decline($token);
 ```
 
@@ -210,8 +153,6 @@ Invitations::decline($token);
 Resend generates a new token and resets the expiration. Only pending or expired invitations can be resent — accepted and cancelled invitations will throw an exception.
 
 ```php
-use Vimatech\Invitation\Facades\Invitations;
-
 Invitations::resend($invitation);
 ```
 
@@ -228,39 +169,6 @@ Invitation::cancelled()->get();
 Invitation::forEmail('john@example.com')->get();
 Invitation::forSubject($project)->get();
 Invitation::invitedBy($user)->get();
-```
-
-## Common Use Cases
-
-### Team invitation
-
-```php
-$team->invite('john@example.com')
-    ->invitedBy(auth()->user())
-    ->send();
-```
-
-### Organization with role
-
-```php
-$organization->invite('john@example.com')
-    ->withMeta(['role' => 'admin'])
-    ->send();
-```
-
-### Project collaboration
-
-```php
-$project->invite('john@example.com')
-    ->withMeta(['role' => 'editor', 'department' => 'engineering'])
-    ->expiresInDays(14)
-    ->send();
-```
-
-### Global invitation (no subject)
-
-```php
-Invitations::to('john@example.com')->send();
 ```
 
 ## Metadata
@@ -531,26 +439,6 @@ return [
 ];
 ```
 
-## Advanced Usage
-
-### Using the InvitationManager directly
-
-```php
-use Vimatech\Invitation\InvitationManager;
-
-$invitation = app(InvitationManager::class)
-    ->to('john@example.com')
-    ->for($project)
-    ->invitedBy($user)
-    ->send();
-```
-
-## Testing
-
-```bash
-composer test
-```
-
 ## Exceptions
 
 All exceptions extend `InvitationException`:
@@ -564,13 +452,7 @@ All exceptions extend `InvitationException`:
 
 ## Contributing
 
-Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) before submitting a pull request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/my-feature`)
-3. Write tests for your changes
-4. Run the test suite (`composer test`) and static analysis (`composer analyse`)
-5. Submit a pull request
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
 
