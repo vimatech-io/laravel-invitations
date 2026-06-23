@@ -3,7 +3,9 @@
 [![Tests](https://github.com/vimatech-io/laravel-invitations/actions/workflows/tests.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/tests.yml)
 [![PHPStan](https://github.com/vimatech-io/laravel-invitations/actions/workflows/phpstan.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/phpstan.yml)
 [![Pint](https://github.com/vimatech-io/laravel-invitations/actions/workflows/pint.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/pint.yml)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
+[![Total Downloads](https://img.shields.io/packagist/dt/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
+[![License](https://img.shields.io/packagist/l/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
 
 Generic email-based invitations for Laravel. Invite anyone to join, access, or accept an action related to any Eloquent model — Organization, Team, Project, Workspace, Document, and more.
 
