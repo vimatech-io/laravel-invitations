@@ -8,9 +8,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in `vimatech/laravel-invitation`, **please do not open a public GitHub issue**.
-
-Instead, report it responsibly by emailing: **hello@adelzemzemi.dev**
+If you discover a security vulnerability, please report it via **[GitHub Private Security Advisories](https://github.com/vimatech-io/laravel-invitations/security/advisories/new)** rather than opening a public issue.
 
 Please include:
 - A description of the vulnerability
