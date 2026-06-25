@@ -2,30 +2,31 @@
 
 ## Supported Versions
 
-| Version | Supported |
-|---------|-----------|
-| 1.x     | ✅ Yes    |
+| Version | Supported          |
+|---------|--------------------|
+| 1.x     | ✅                 |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability, please report it via **[GitHub Private Security Advisories](https://github.com/vimatech-io/laravel-invitations/security/advisories/new)** rather than opening a public issue.
+If you discover a security vulnerability within Laravel Invitation, please send an email to **hello@adelzemzemi.dev**.
 
-Please include:
+**Please do not report security vulnerabilities through public GitHub issues.**
+
+All security vulnerabilities will be promptly addressed.
+
+## What to include
+
 - A description of the vulnerability
 - Steps to reproduce
 - Potential impact
-- Any suggested fix (optional)
+- Suggested fix (if any)
 
-You will receive an acknowledgement within **48 hours**, and a fix will be prioritised based on severity.
+## Response timeline
 
-## Security Design Notes
+- **Acknowledgement:** within 48 hours
+- **Initial assessment:** within 5 business days
+- **Fix release:** as soon as possible, depending on severity
 
-This package handles invitation tokens. Key security decisions:
+## Disclosure policy
 
-- Tokens are generated using `Str::random(64)` (cryptographically random)
-- Tokens are **never stored in plain text** — only their hash is persisted
-- Default strategy is **HMAC** (deterministic, O(1) lookup, tied to `APP_KEY`)
-- Optional **bcrypt** strategy for resistance against database leaks
-- Token verification uses **constant-time comparison** to prevent timing attacks
-- Public routes are **rate-limited** per IP (configurable, default: 30 req/min)
-- Route token parameter is validated via regex (`[a-zA-Z0-9]{64}`) before any DB query
+We follow responsible disclosure. We will coordinate with you on timing before any public disclosure.

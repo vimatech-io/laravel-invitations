@@ -1,8 +1,6 @@
 # Laravel Invitation
 
-[![Tests](https://github.com/vimatech-io/laravel-invitations/actions/workflows/tests.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/tests.yml)
-[![PHPStan](https://github.com/vimatech-io/laravel-invitations/actions/workflows/phpstan.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/phpstan.yml)
-[![Pint](https://github.com/vimatech-io/laravel-invitations/actions/workflows/pint.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/pint.yml)
+[![CI](https://github.com/vimatech-io/laravel-invitations/actions/workflows/ci.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/ci.yml)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
 [![Total Downloads](https://img.shields.io/packagist/dt/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
 [![License](https://img.shields.io/packagist/l/vimatech/laravel-invitation.svg?style=flat-square)](https://packagist.org/packages/vimatech/laravel-invitation)
@@ -38,8 +36,8 @@ Invite → Email sent → User clicks link → Accept → Event dispatched
 
 ## Requirements
 
-- PHP 8.2+
-- Laravel 11+
+- PHP 8.3+
+- Laravel 11, 12 or 13
 
 ## Installation
 
@@ -466,8 +464,9 @@ If you discover a security vulnerability, please review our [security policy](SE
 
 ## Credits
 
-Built and maintained by [Vimatech](https://vimatech.io/). Created by [Adel Zemzemi](https://github.com/adelzemzemi).
+Built and maintained by [Vimatech](https://vimatech.io).
+Created by [Adel Zemzemi](https://github.com/adelzemzemi).
 
 ## License
 
-MIT
+The MIT License (MIT). Please see [License File](LICENSE) for more information.
