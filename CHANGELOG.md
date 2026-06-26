@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-26
+
+### Changed
+
+- **Require PHP 8.3+** (dropped PHP 8.2 support).
+- Test against Laravel 13 and unify CI into a single workflow.
+
+### Added
+
+- `CONTRIBUTING.md`, `SECURITY.md` and Dependabot configuration.
+- `.gitattributes` (`export-ignore`) and Packagist badges.
+
 ## [1.0.0] - 2026-06-23
 
 ### Added
