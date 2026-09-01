@@ -6,6 +6,7 @@ namespace Vimatech\Invitation\Support;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Vimatech\Invitation\Exceptions\InvitationConfigurationException;
 
 class InvitationToken
 {
@@ -52,9 +53,28 @@ class InvitationToken
 
     protected static function hmacHash(string $plainToken): string
     {
-        /** @var string $key */
-        $key = config('app.key');
+        return hash_hmac('sha256', $plainToken, static::hmacKey());
+    }
 
-        return hash_hmac('sha256', $plainToken, $key);
+    /**
+     * Falls back to APP_KEY, verbatim, because that is what already-stored hashes
+     * were built with. Changing the fallback would invalidate every pending token.
+     */
+    protected static function hmacKey(): string
+    {
+        $key = config('invitation.token_hmac_key');
+
+        if (is_string($key) && $key !== '') {
+            if (strlen($key) < 32) {
+                throw InvitationConfigurationException::hmacKeyTooShort(strlen($key));
+            }
+
+            return $key;
+        }
+
+        /** @var string $appKey */
+        $appKey = config('app.key');
+
+        return $appKey;
     }
 }

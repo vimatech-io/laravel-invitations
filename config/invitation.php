@@ -101,4 +101,21 @@ return [
     | "hmac" allows direct DB lookups (O(1)), "hash" requires iterating all records (O(n)).
     */
     'token_strategy' => 'hmac',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Token HMAC Key
+    |--------------------------------------------------------------------------
+    | The key used by the "hmac" strategy. At least 32 characters.
+    |
+    | Left unset, token hashes are derived from APP_KEY. That works, but it ties
+    | every pending invitation to it: rotating APP_KEY stops every outstanding
+    | token from matching, and holders see "invitation not found". Setting a
+    | dedicated key here decouples the two.
+    |
+    | To adopt one without invalidating tokens already sent, set it to your
+    | current APP_KEY value first — the hashes are identical — then rotate both
+    | independently once the outstanding invitations have expired.
+    */
+    'token_hmac_key' => env('INVITATION_TOKEN_HMAC_KEY'),
 ];
