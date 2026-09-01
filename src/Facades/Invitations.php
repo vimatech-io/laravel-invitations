@@ -30,6 +30,13 @@ use Vimatech\Invitation\InvitationManager;
  */
 class Invitations extends Facade
 {
+    /**
+     * The manager is a mutable builder, so the facade must not hold on to one.
+     * A cached instance would carry a subject, an inviter or metadata from an
+     * abandoned or failed chain into the next invitation built through it.
+     */
+    protected static $cached = false;
+
     protected static function getFacadeAccessor(): string
     {
         return InvitationManager::class;
