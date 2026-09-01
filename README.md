@@ -407,7 +407,12 @@ invitations
 
 - Tokens are generated using `Str::random(64)`
 - Tokens are hashed before storage using HMAC (default) or bcrypt
-- HMAC (recommended): deterministic, allows direct DB lookup (O(1)), relies on `APP_KEY`
+- HMAC (default): deterministic, allows direct DB lookup (O(1))
+- The HMAC key is `invitation.token_hmac_key`. Left unset it falls back to `APP_KEY`, which
+  ties every pending invitation to it — rotating `APP_KEY` stops every outstanding token from
+  matching and holders see "invitation not found". Set `INVITATION_TOKEN_HMAC_KEY` to decouple
+  them. To adopt one without invalidating tokens already sent, set it to your current `APP_KEY`
+  value first: the hashes are byte-identical. Rotate the two independently afterwards.
 - Bcrypt: non-deterministic, requires iterating records (O(n)), resistant to DB leaks
 - The plain token is only available at the moment of creation/sending
 - Token verification uses constant-time comparison
@@ -436,6 +441,7 @@ return [
         'allow_pending_for_same_email_and_subject' => false,
     ],
     'token_strategy' => 'hmac', // 'hmac' (recommended) or 'hash'
+    'token_hmac_key' => env('INVITATION_TOKEN_HMAC_KEY'), // min 32 chars; falls back to APP_KEY
 ];
 ```
 

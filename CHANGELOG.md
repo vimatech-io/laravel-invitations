@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-01
+
+### Added
+
+- `invitation.token_hmac_key` (env `INVITATION_TOKEN_HMAC_KEY`), so the `hmac` token strategy no longer has to key on `APP_KEY`. Rotating `APP_KEY` previously stopped every outstanding invitation token from matching, and the holder simply saw "invitation not found". Left unset the key still falls back to `APP_KEY`, byte for byte, so no stored token changes on upgrade. A dedicated key shorter than 32 characters is refused rather than accepted quietly.
+
+### Fixed
+
+- The `Invitations` facade no longer caches the manager. The manager is a mutable builder and the facade held one instance, so a chain that was abandoned or that failed its duplicate check left its subject, inviter, expiry and metadata behind — and the next invitation built through the facade inherited them. An invitation could be created against the wrong subject with the wrong metadata. Under a worker process the same instance also spanned requests.
+
 ## [1.1.0] - 2026-06-26
 
 ### Changed
