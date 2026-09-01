@@ -329,7 +329,7 @@ class InvitationManager
         $invitation->update([
             'token_hash' => $hashedToken,
             'status' => InvitationStatus::Pending,
-            'expires_at' => now()->addDays((int) config('invitation.expires_after_days', 7)),
+            'expires_at' => $this->configuredExpiration(),
         ]);
 
         $invitation->plainToken = $plainToken;
@@ -474,6 +474,15 @@ class InvitationManager
             return $this->expiresAt;
         }
 
+        return $this->configuredExpiration();
+    }
+
+    /**
+     * Null means invitations do not expire, which is a documented setting. It is
+     * not the same as zero days, which would expire the invitation on issue.
+     */
+    private function configuredExpiration(): ?CarbonInterface
+    {
         $days = config('invitation.expires_after_days');
 
         if ($days === null) {
