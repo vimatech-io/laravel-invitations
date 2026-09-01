@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resending an invitation now uses the same expiry rule as creating one. `resend()` computed `now()->addDays((int) config('invitation.expires_after_days', 7))`, and the inline default never applied because the key exists: an application configured with `null` — the documented setting for invitations that never expire — got `(int) null`, so the resent invitation expired the moment it was issued and the recipient was told it had expired. Both paths share one implementation.
 - The `Invitations` facade no longer caches the manager. The manager is a mutable builder and the facade held one instance, so a chain that was abandoned or that failed its duplicate check left its subject, inviter, expiry and metadata behind — and the next invitation built through the facade inherited them. An invitation could be created against the wrong subject with the wrong metadata. Under a worker process the same instance also spanned requests.
 
 ## [1.1.0] - 2026-06-26
