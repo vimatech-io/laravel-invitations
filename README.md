@@ -1,4 +1,4 @@
-# Laravel Invitation
+# Laravel Invitations
 
 [![CI](https://github.com/vimatech-io/laravel-invitations/actions/workflows/ci.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/ci.yml)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/vimatech/laravel-invitation.svg)](https://packagist.org/packages/vimatech/laravel-invitation)
@@ -44,6 +44,11 @@ Invite → Email sent → User clicks link → Accept → Event dispatched
 ```bash
 composer require vimatech/laravel-invitation
 ```
+
+> The Packagist name is singular (`vimatech/laravel-invitation`) while the
+> repository is plural. The published name cannot change without breaking
+> existing installs, so it stays as it is: install the singular, read the plural.
+
 
 ### Publish the configuration file (optional)
 
@@ -455,6 +460,14 @@ All exceptions extend `InvitationException`:
 - `InvitationCancelledException` — Invitation was cancelled
 - `InvitationDeclinedException` — Invitation was declined by invitee
 - `InvitationAlreadyExistsException` — Duplicate pending invitation
+
+## Testing
+
+```bash
+composer test       # Pest
+composer analyse    # PHPStan
+composer format     # Pint
+```
 
 ## Contributing
 
