@@ -1,17 +1,24 @@
-# Laravel Invitations
+<a href="https://vimatech.io/open-source">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://vimatech.io/packages/header/laravel-invitations/dark.webp">
+    <img alt="Laravel Invitations" src="https://vimatech.io/packages/header/laravel-invitations/light.webp">
+  </picture>
+</a>
+
+# Email invitations to any Eloquent model
 
 [![CI](https://github.com/vimatech-io/laravel-invitations/actions/workflows/ci.yml/badge.svg)](https://github.com/vimatech-io/laravel-invitations/actions/workflows/ci.yml)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/vimatech/laravel-invitation.svg)](https://packagist.org/packages/vimatech/laravel-invitation)
 [![Total Downloads](https://img.shields.io/packagist/dt/vimatech/laravel-invitation.svg)](https://packagist.org/packages/vimatech/laravel-invitation)
 [![License](https://img.shields.io/packagist/l/vimatech/laravel-invitation.svg)](https://packagist.org/packages/vimatech/laravel-invitation)
 
-Generic email-based invitations for Laravel. Invite anyone to join, access, or accept an action related to any Eloquent model — Organization, Team, Project, Workspace, Document, and more.
+Generic email-based invitations for Laravel. Invite anyone to join, access, or accept an action related to any Eloquent model: Organization, Team, Project, Workspace, Document, and more.
 
 ## Why Laravel Invitation?
 
-- Invite users to **any Eloquent model** — not just teams
+- Invite users to **any Eloquent model**: not just teams
 - Secure token-based workflow (HMAC by default)
-- Framework-agnostic — no dependency on Jetstream, Breeze, or any starter kit
+- Framework-agnostic: no dependency on Jetstream, Breeze, or any starter kit
 - Extensible acceptance handlers and custom notifications
 - Production-ready with queued emails, i18n, and rate-limited routes
 
@@ -32,7 +39,7 @@ Invitations::accept($token, auth()->user());
 Invite → Email sent → User clicks link → Accept → Event dispatched
 ```
 
-> **Subject** — The model being invited to (Project, Team, Organization, Workspace, etc.). Set via `->for($model)`. An invitation without a subject is a "global" invitation.
+> **Subject**: The model being invited to (Project, Team, Organization, Workspace, etc.). Set via `->for($model)`. An invitation without a subject is a "global" invitation.
 
 ## Requirements
 
@@ -81,7 +88,7 @@ $invitation = Invitations::to('john@example.com')->send();
 
 ### Invitation to a User model
 
-If you already have the user model, you can pass it directly — the email will be extracted automatically:
+If you already have the user model, you can pass it directly, the email will be extracted automatically:
 
 ```php
 $invitation = Invitations::toUser($user)
@@ -155,7 +162,7 @@ Invitations::decline($token);
 
 ### Resending an invitation
 
-Resend generates a new token and resets the expiration. Only pending or expired invitations can be resent — accepted and cancelled invitations will throw an exception.
+Resend generates a new token and resets the expiration. Only pending or expired invitations can be resent. Accepted and cancelled invitations will throw an exception.
 
 ```php
 Invitations::resend($invitation);
@@ -375,12 +382,12 @@ Configure in `config/invitation.php`:
 
 ### Authentication and routes
 
-The **preview page** (`GET`) is public — anyone with the link can view the invitation details.
+The **preview page** (`GET`) is public: anyone with the link can view the invitation details.
 
 The **accept route** (`POST`) does not enforce authentication by default. Two common patterns:
 
 - **Existing user**: Add `auth` middleware, then call `Invitations::accept($token, auth()->user())`
-- **New user**: Redirect to registration, then call `Invitations::acceptForNewUser($token, $newUser)` after signup — this verifies the registered email matches the invitation
+- **New user**: Redirect to registration, then call `Invitations::acceptForNewUser($token, $newUser)` after signup, which verifies the registered email matches the invitation
 
 To require authentication, add `auth` to the route middleware in config:
 
@@ -414,7 +421,7 @@ invitations
 - Tokens are hashed before storage using HMAC (default) or bcrypt
 - HMAC (default): deterministic, allows direct DB lookup (O(1))
 - The HMAC key is `invitation.token_hmac_key`. Left unset it falls back to `APP_KEY`, which
-  ties every pending invitation to it — rotating `APP_KEY` stops every outstanding token from
+  ties every pending invitation to it: rotating `APP_KEY` stops every outstanding token from
   matching and holders see "invitation not found". Set `INVITATION_TOKEN_HMAC_KEY` to decouple
   them. To adopt one without invalidating tokens already sent, set it to your current `APP_KEY`
   value first: the hashes are byte-identical. Rotate the two independently afterwards.
@@ -454,12 +461,12 @@ return [
 
 All exceptions extend `InvitationException`:
 
-- `InvitationNotFoundException` — Token invalid or no matching invitation
-- `InvitationExpiredException` — Invitation has expired
-- `InvitationAlreadyAcceptedException` — Already accepted
-- `InvitationCancelledException` — Invitation was cancelled
-- `InvitationDeclinedException` — Invitation was declined by invitee
-- `InvitationAlreadyExistsException` — Duplicate pending invitation
+- `InvitationNotFoundException`: Token invalid or no matching invitation
+- `InvitationExpiredException`: Invitation has expired
+- `InvitationAlreadyAcceptedException`: Already accepted
+- `InvitationCancelledException`: Invitation was cancelled
+- `InvitationDeclinedException`: Invitation was declined by invitee
+- `InvitationAlreadyExistsException`: Duplicate pending invitation
 
 ## Testing
 
