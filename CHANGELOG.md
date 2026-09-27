@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-27
+
+### Security
+
+- `accept($token, $user)` did not check that `$user` is the person invited: it accepted for whichever user it was given, and the package's own `POST /invitations/{token}/accept` route passes the signed-in user. Anyone holding a leaked invitation link (a forwarded email, a shared inbox, a support ticket, browser history) could accept it with their own account and receive what the invitation grants. When a user is given, `accept()` now compares the user's email with the invited address (trimmed, case-insensitive) and throws the new `InvitationEmailMismatchException`, which extends `InvitationNotFoundException` so existing catch blocks keep working. The accept route now shows "This invitation was sent to a different email address." Affected: all versions before 1.3.0. This is a deliberate behaviour change: an application that intentionally lets one account accept an invitation sent to another address must set `invitation.accept.require_matching_email` to `false`. The setting is read with a default of `true`, so a config file published before 1.3.0 (which does not have the key) gets the check. A user model with no email attribute now fails the check, since it is then compared as empty: such applications must disable the setting and do their own binding. `accept($token)` with no user (anonymous acceptance) is unchanged and not checked. `acceptForNewUser()` always compares the emails, whatever the setting says. Neither method checks that the user's email address is verified: an account registered with the invitee's address but never verified passes the check. Applications should require a verified address (`MustVerifyEmail` plus the `verified` middleware) before calling either method.
+- `InvitationNotification` now implements `ShouldBeEncrypted`. The queued job used to carry the plain token and the invitee's address in clear text in the queue backend and in `failed_jobs`. Custom notifications extending it inherit this; a fully custom notification class must implement `ShouldBeEncrypted` itself. The payload is encrypted with `APP_KEY`: jobs already queued before the upgrade are still processed (their unencrypted payloads remain readable), but a job encrypted before an `APP_KEY` rotation needs the old key in `APP_PREVIOUS_KEYS` to be processed.
+- `send()` and `resend()` now throw `InvitationConfigurationException` before writing anything when no invitation link can be built: `invitation.url_generator` is `null` and no route exists with the name in `invitation.route_name` (typically `routes.enabled` set to `false` without a `url_generator`). Previously `send()` created the invitation and the failure only happened in the queue worker, leaving a failed job holding a live token, and a retry then hit the duplicate guard. This check is not triggered when the configured notification overrides `toMail()` or `generateUrl()`, or is not a subclass of `InvitationNotification`. `create()` is unaffected.
+
+### Changed
+
+- The package controller no longer copies the token into the login URL query string (`?invitation_token=`) when a guest accepts, nor into the guest login link on the preview page. The preview page URL is stored as the session's intended URL instead, so a login flow that uses `redirect()->intended()` brings the user back to the invitation. An application that read `invitation_token` from its login page must switch to the intended URL. (Previously undocumented.)
+
+### Added
+
+- `invitation.accept.require_matching_email` (default `true`).
+- `InvitationEmailMismatchException`.
+- `InvitationConfigurationException::invitationUrlUnavailable()`.
+
+Upgrade: republishing the config is optional. Check whether your application intentionally accepts invitations across accounts; if so, set the key to `false`.
+
 ## [1.2.1] - 2026-09-27
 
 ### Fixed
