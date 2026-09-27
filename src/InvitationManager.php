@@ -25,10 +25,12 @@ use Vimatech\Invitation\Exceptions\InvitationAlreadyAcceptedException;
 use Vimatech\Invitation\Exceptions\InvitationAlreadyExistsException;
 use Vimatech\Invitation\Exceptions\InvitationCancelledException;
 use Vimatech\Invitation\Exceptions\InvitationDeclinedException;
+use Vimatech\Invitation\Exceptions\InvitationEmailMismatchException;
 use Vimatech\Invitation\Exceptions\InvitationException;
 use Vimatech\Invitation\Exceptions\InvitationExpiredException;
 use Vimatech\Invitation\Exceptions\InvitationNotFoundException;
 use Vimatech\Invitation\Models\Invitation;
+use Vimatech\Invitation\Notifications\InvitationNotification;
 use Vimatech\Invitation\Support\InvitationToken;
 
 class InvitationManager
@@ -126,6 +128,8 @@ class InvitationManager
      */
     public function send(): Invitation
     {
+        $this->ensureInvitationUrlCanBeBuilt();
+
         $invitation = $this->create();
 
         $this->sendNotification($invitation);
@@ -179,6 +183,10 @@ class InvitationManager
     {
         $invitation = $this->findByToken($token);
 
+        if ($user && config('invitation.accept.require_matching_email', true)) {
+            $this->ensureEmailMatches($invitation, $user);
+        }
+
         return $this->acceptResolved($invitation, $user);
     }
 
@@ -213,18 +221,13 @@ class InvitationManager
     }
 
     /**
-     * Accept an invitation for a newly registered user.
-     * Verifies the invitation email matches the user's email.
+     * Always compares the emails, whatever invitation.accept.require_matching_email says.
      */
     public function acceptForNewUser(string $token, Model $user): Invitation
     {
         $invitation = $this->findByToken($token);
 
-        $userEmail = strtolower((string) $user->getAttribute('email'));
-
-        if ($invitation->email !== $userEmail) {
-            throw new InvitationNotFoundException;
-        }
+        $this->ensureEmailMatches($invitation, $user);
 
         return $this->acceptResolved($invitation, $user);
     }
@@ -266,6 +269,8 @@ class InvitationManager
      */
     public function resend(Invitation $invitation): Invitation
     {
+        $this->ensureInvitationUrlCanBeBuilt();
+
         [$plainToken, $hashedToken] = InvitationToken::generate();
 
         $this->transition($invitation, $this->eligible($invitation, InvitationStatus::Pending, InvitationStatus::Expired), [
@@ -419,6 +424,27 @@ class InvitationManager
             InvitationStatus::Declined => new InvitationDeclinedException,
             InvitationStatus::Expired, InvitationStatus::Pending => new InvitationExpiredException,
         };
+    }
+
+    private function ensureEmailMatches(Invitation $invitation, Model $user): void
+    {
+        if ($this->normalizeEmail($invitation->email) !== $this->normalizeEmail($user->getAttribute('email'))) {
+            throw new InvitationEmailMismatchException;
+        }
+    }
+
+    private function normalizeEmail(mixed $email): string
+    {
+        return strtolower(trim((string) $email));
+    }
+
+    private function ensureInvitationUrlCanBeBuilt(): void
+    {
+        $notificationClass = config('invitation.notification');
+
+        if (is_string($notificationClass) && is_a($notificationClass, InvitationNotification::class, true)) {
+            $notificationClass::ensureUrlCanBeBuilt();
+        }
     }
 
     private function sendNotification(Invitation $invitation): void

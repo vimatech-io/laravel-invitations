@@ -14,4 +14,12 @@ class InvitationConfigurationException extends InvitationException
             .'Leave it unset to keep deriving token hashes from APP_KEY.'
         );
     }
+
+    public static function invitationUrlUnavailable(string $routeName): self
+    {
+        return new self(
+            "Cannot build the invitation link: the route [{$routeName}] does not exist and invitation.url_generator is not set. "
+            .'Enable the package routes, point invitation.route_name at an existing route, or set invitation.url_generator.'
+        );
+    }
 }

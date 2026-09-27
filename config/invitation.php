@@ -45,6 +45,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Acceptance
+    |--------------------------------------------------------------------------
+    | accept() refuses a user whose email differs from the invited address and
+    | throws InvitationEmailMismatchException. Set to false only if a user may
+    | knowingly accept an invitation addressed to someone else.
+    | acceptForNewUser() always compares the emails, whatever this says.
+    | Neither method checks that the user's email is verified.
+    */
+    'accept' => [
+        'require_matching_email' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Routes
     |--------------------------------------------------------------------------
     */

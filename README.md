@@ -32,6 +32,7 @@ $invitation = Invitations::to('john@example.com')
     ->send();
 
 // 2. Accept the invitation (via token from email)
+// Refuses if auth()->user()->email does not match the invited address.
 Invitations::accept($token, auth()->user());
 ```
 
@@ -139,12 +140,16 @@ $project->pendingInvitations;
 $invitation = Invitations::accept($token, $user);
 ```
 
+When `$user` is given, `accept()` compares its email to the invited address (trimmed, case-insensitive) and throws `InvitationEmailMismatchException` on a mismatch, so accepting with the wrong account fails instead of silently granting whatever the invitation grants. Set `invitation.accept.require_matching_email` to `false` only if an application intentionally lets one account accept an invitation addressed to another. Neither this check nor `acceptForNewUser()` verifies that the user's email address is actually owned by them: require a verified address (`MustVerifyEmail` plus the `verified` middleware) before calling either method if that matters. `accept($token)` with no user is unchanged and is never checked.
+
 ### Accepting after registration (new user)
 
 ```php
-// After user registration (verifies the invitation email matches the user's email):
+// After user registration:
 $invitation = Invitations::acceptForNewUser($token, $newUser);
 ```
+
+`acceptForNewUser()` always compares the invitation email to `$newUser`'s email, whatever `invitation.accept.require_matching_email` says, and throws `InvitationEmailMismatchException` on a mismatch.
 
 ### Cancelling an invitation
 
@@ -310,7 +315,7 @@ Then set it in config:
 
 ## Custom Notification
 
-You can customize the invitation email in several ways:
+The default notification implements `ShouldBeEncrypted`, so its queued job is encrypted with `APP_KEY` and does not carry the plain token or the invitee's address in clear text in the queue backend or in `failed_jobs`. You can customize the invitation email in several ways:
 
 ### Extend the default notification
 
@@ -342,6 +347,8 @@ class CustomInvitationNotification extends InvitationNotification
 // config/invitation.php
 'notification' => App\Notifications\CustomInvitationNotification::class,
 ```
+
+A notification that does not extend `InvitationNotification` does not inherit `ShouldBeEncrypted`: implement it directly if the queued payload should be encrypted.
 
 Your notification will receive the `Invitation` model and the plain token in its constructor.
 
@@ -380,14 +387,20 @@ Configure in `config/invitation.php`:
 ],
 ```
 
+Disabling `routes.enabled` removes these three routes, and it also removes the route that `invitation.route_name` points to by default. `send()` and `resend()` then need `invitation.url_generator` set to build the invitation link; without it, they now throw `InvitationConfigurationException` before writing anything, rather than failing later in a queue worker.
+
 ### Authentication and routes
 
 The **preview page** (`GET`) is public: anyone with the link can view the invitation details.
 
-The **accept route** (`POST`) does not carry an `auth` middleware by default, but it does not accept anonymously either: a guest is redirected to the named `login` route when one exists, otherwise back with an error. Two common patterns:
+The **accept route** (`POST`) does not carry an `auth` middleware by default, but it does not accept anonymously either: the controller checks for a signed-in user itself. A guest is redirected to the named `login` route (when one exists; otherwise the request is redirected back with an error), with the preview page stored as the session's intended URL, so a login flow that finishes with `redirect()->intended()` returns the user to the invitation. The token is not passed in the login URL's query string.
 
-- **Existing user**: Add `auth` middleware, then call `Invitations::accept($token, auth()->user())`
-- **New user**: Redirect to registration, then call `Invitations::acceptForNewUser($token, $newUser)` after signup, which verifies the registered email matches the invitation
+The accept route also inherits the email check described under [Accepting an invitation](#accepting-an-invitation): a signed-in user whose email does not match the invited address gets "This invitation was sent to a different email address." instead of being accepted.
+
+Two common patterns:
+
+- **Existing user**: Add `auth` middleware if you want a hard redirect to login regardless of the route's own guest handling, then call `Invitations::accept($token, auth()->user())`
+- **New user**: Redirect to registration, then call `Invitations::acceptForNewUser($token, $newUser)` after signup, which always verifies the registered email matches the invitation
 
 To require authentication, add `auth` to the route middleware in config:
 
@@ -452,6 +465,9 @@ return [
     'duplicates' => [
         'allow_pending_for_same_email_and_subject' => false,
     ],
+    'accept' => [
+        'require_matching_email' => true,
+    ],
     'token_strategy' => 'hmac', // 'hmac' (recommended) or 'hash'
     'token_hmac_key' => env('INVITATION_TOKEN_HMAC_KEY'), // min 32 chars; falls back to APP_KEY
 ];
@@ -462,11 +478,13 @@ return [
 All exceptions extend `InvitationException`:
 
 - `InvitationNotFoundException`: Token invalid or no matching invitation
+- `InvitationEmailMismatchException`: Extends `InvitationNotFoundException`. The given user's email does not match the invited address
 - `InvitationExpiredException`: Invitation has expired
 - `InvitationAlreadyAcceptedException`: Already accepted
 - `InvitationCancelledException`: Invitation was cancelled
 - `InvitationDeclinedException`: Invitation was declined by invitee
 - `InvitationAlreadyExistsException`: Duplicate pending invitation
+- `InvitationConfigurationException`: The package is misconfigured (a dedicated HMAC key shorter than 32 characters, or no way to build the invitation link when sending)
 
 ## Testing
 
