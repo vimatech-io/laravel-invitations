@@ -6,6 +6,7 @@ namespace Vimatech\Invitation;
 
 use Carbon\CarbonInterface;
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
@@ -24,6 +25,7 @@ use Vimatech\Invitation\Exceptions\InvitationAlreadyAcceptedException;
 use Vimatech\Invitation\Exceptions\InvitationAlreadyExistsException;
 use Vimatech\Invitation\Exceptions\InvitationCancelledException;
 use Vimatech\Invitation\Exceptions\InvitationDeclinedException;
+use Vimatech\Invitation\Exceptions\InvitationException;
 use Vimatech\Invitation\Exceptions\InvitationExpiredException;
 use Vimatech\Invitation\Exceptions\InvitationNotFoundException;
 use Vimatech\Invitation\Models\Invitation;
@@ -185,45 +187,25 @@ class InvitationManager
      */
     private function acceptResolved(Invitation $invitation, ?Model $user = null): Invitation
     {
-        if ($invitation->isCancelled()) {
-            throw new InvitationCancelledException;
-        }
-
-        if ($invitation->isDeclined()) {
-            throw new InvitationDeclinedException;
-        }
-
-        if ($invitation->isAccepted()) {
-            throw new InvitationAlreadyAcceptedException;
-        }
-
         if ($invitation->isExpired()) {
-            $invitation->update(['status' => InvitationStatus::Expired]);
+            $this->transition($invitation, $this->eligible($invitation, InvitationStatus::Pending), [
+                'status' => InvitationStatus::Expired->value,
+            ]);
             event(new InvitationExpired($invitation));
 
             throw new InvitationExpiredException;
         }
 
-        // Atomic update to prevent race conditions
-        $updated = $invitation->newQuery()
-            ->whereKey($invitation->getKey())
-            ->where('status', InvitationStatus::Pending)
-            ->update([
+        $invitation->getConnection()->transaction(function () use ($invitation, $user): void {
+            $this->transition($invitation, $this->eligibleUnexpired($invitation), [
                 'status' => InvitationStatus::Accepted->value,
                 'accepted_at' => now(),
                 'accepted_by_type' => $user?->getMorphClass(),
                 'accepted_by_id' => $user?->getKey(),
             ]);
 
-        if ($updated === 0) {
-            $invitation->refresh();
-
-            throw new InvitationAlreadyAcceptedException;
-        }
-
-        $invitation->refresh();
-
-        $this->runAcceptanceHandler($invitation, $user);
+            $this->runAcceptanceHandler($invitation, $user);
+        });
 
         event(new InvitationAccepted($invitation, $user));
 
@@ -252,20 +234,8 @@ class InvitationManager
      */
     public function cancel(Invitation $invitation): Invitation
     {
-        if ($invitation->isAccepted()) {
-            throw new InvitationAlreadyAcceptedException;
-        }
-
-        if ($invitation->isDeclined()) {
-            throw new InvitationDeclinedException;
-        }
-
-        if ($invitation->isCancelled()) {
-            throw new InvitationCancelledException;
-        }
-
-        $invitation->update([
-            'status' => InvitationStatus::Cancelled,
+        $this->transition($invitation, $this->eligible($invitation, InvitationStatus::Pending, InvitationStatus::Expired), [
+            'status' => InvitationStatus::Cancelled->value,
             'cancelled_at' => now(),
         ]);
 
@@ -281,24 +251,8 @@ class InvitationManager
     {
         $invitation = $this->findByToken($token);
 
-        if ($invitation->isAccepted()) {
-            throw new InvitationAlreadyAcceptedException;
-        }
-
-        if ($invitation->isCancelled()) {
-            throw new InvitationCancelledException;
-        }
-
-        if ($invitation->isExpired()) {
-            throw new InvitationExpiredException;
-        }
-
-        if ($invitation->isDeclined()) {
-            throw new InvitationDeclinedException;
-        }
-
-        $invitation->update([
-            'status' => InvitationStatus::Declined,
+        $this->transition($invitation, $this->eligibleUnexpired($invitation), [
+            'status' => InvitationStatus::Declined->value,
             'declined_at' => now(),
         ]);
 
@@ -312,23 +266,11 @@ class InvitationManager
      */
     public function resend(Invitation $invitation): Invitation
     {
-        if ($invitation->isAccepted()) {
-            throw new InvitationAlreadyAcceptedException;
-        }
-
-        if ($invitation->isCancelled()) {
-            throw new InvitationCancelledException;
-        }
-
-        if ($invitation->isDeclined()) {
-            throw new InvitationDeclinedException;
-        }
-
         [$plainToken, $hashedToken] = InvitationToken::generate();
 
-        $invitation->update([
+        $this->transition($invitation, $this->eligible($invitation, InvitationStatus::Pending, InvitationStatus::Expired), [
             'token_hash' => $hashedToken,
-            'status' => InvitationStatus::Pending,
+            'status' => InvitationStatus::Pending->value,
             'expires_at' => $this->configuredExpiration(),
         ]);
 
@@ -408,7 +350,7 @@ class InvitationManager
         /** @var class-string<Invitation> $modelClass */
         $modelClass = config('invitation.model', Invitation::class);
 
-        $query = $modelClass::query()
+        $query = $this->whereUnexpired($modelClass::query())
             ->where('email', $this->email)
             ->where('status', InvitationStatus::Pending);
 
@@ -423,6 +365,60 @@ class InvitationManager
         if ($query->exists()) {
             throw new InvitationAlreadyExistsException;
         }
+    }
+
+    /**
+     * The status is re-checked by the UPDATE itself, not by the loaded model:
+     * a concurrent request may have changed the row since it was read.
+     *
+     * @param  Builder<Invitation>  $eligible
+     * @param  array<string, mixed>  $attributes
+     */
+    private function transition(Invitation $invitation, Builder $eligible, array $attributes): void
+    {
+        $updated = $eligible->update($attributes);
+
+        $invitation->refresh();
+
+        if ($updated === 0) {
+            throw $this->refusalFor($invitation);
+        }
+    }
+
+    /** @return Builder<Invitation> */
+    private function eligible(Invitation $invitation, InvitationStatus ...$from): Builder
+    {
+        $query = $invitation->newQuery()->whereKey($invitation->getKey());
+        $query->whereIn('status', array_map(fn (InvitationStatus $status) => $status->value, $from));
+
+        return $query;
+    }
+
+    /** @return Builder<Invitation> */
+    private function eligibleUnexpired(Invitation $invitation): Builder
+    {
+        return $this->whereUnexpired($this->eligible($invitation, InvitationStatus::Pending));
+    }
+
+    /**
+     * @param  Builder<Invitation>  $query
+     * @return Builder<Invitation>
+     */
+    private function whereUnexpired(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $query) => $query
+            ->whereNull('expires_at')
+            ->orWhere('expires_at', '>', now()));
+    }
+
+    private function refusalFor(Invitation $invitation): InvitationException
+    {
+        return match ($invitation->status) {
+            InvitationStatus::Accepted => new InvitationAlreadyAcceptedException,
+            InvitationStatus::Cancelled => new InvitationCancelledException,
+            InvitationStatus::Declined => new InvitationDeclinedException,
+            InvitationStatus::Expired, InvitationStatus::Pending => new InvitationExpiredException,
+        };
     }
 
     private function sendNotification(Invitation $invitation): void
