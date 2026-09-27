@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 use Vimatech\Invitation\Exceptions\InvitationAlreadyAcceptedException;
 use Vimatech\Invitation\Exceptions\InvitationCancelledException;
 use Vimatech\Invitation\Exceptions\InvitationDeclinedException;
+use Vimatech\Invitation\Exceptions\InvitationEmailMismatchException;
 use Vimatech\Invitation\Exceptions\InvitationExpiredException;
 use Vimatech\Invitation\Exceptions\InvitationNotFoundException;
 use Vimatech\Invitation\InvitationManager;
@@ -32,6 +33,10 @@ class InvitationController extends Controller
             return redirect()->back()->withErrors(['invitation' => __('Invalid invitation token.')]);
         }
 
+        if (! $request->user()) {
+            redirect()->setIntendedUrl($request->url());
+        }
+
         return view('invitation::preview', [
             'token' => $token,
             'invitation' => $invitation,
@@ -45,8 +50,10 @@ class InvitationController extends Controller
 
         if (! $user) {
             if (Route::has('login')) {
+                redirect()->setIntendedUrl(route(config('invitation.route_names.preview', 'invitations.preview'), ['token' => $token]));
+
                 return redirect()
-                    ->route('login', ['invitation_token' => $token])
+                    ->route('login')
                     ->with('message', 'Please log in to accept the invitation.');
             }
 
@@ -59,6 +66,8 @@ class InvitationController extends Controller
             $this->manager->accept($token, $user);
 
             return redirect()->back()->with('status', 'Invitation accepted successfully.');
+        } catch (InvitationEmailMismatchException) {
+            return redirect()->back()->withErrors(['invitation' => 'This invitation was sent to a different email address.']);
         } catch (InvitationNotFoundException) {
             return redirect()->back()->withErrors(['invitation' => 'Invalid invitation token.']);
         } catch (InvitationExpiredException) {

@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Vimatech\Invitation\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Route;
+use ReflectionMethod;
+use Vimatech\Invitation\Exceptions\InvitationConfigurationException;
 use Vimatech\Invitation\Models\Invitation;
 
-class InvitationNotification extends Notification implements ShouldQueue
+class InvitationNotification extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 
@@ -88,8 +92,35 @@ class InvitationNotification extends Notification implements ShouldQueue
             return app()->call($urlGenerator, ['token' => $this->plainToken]);
         }
 
-        $routeName = config('invitation.route_name', 'invitations.preview');
+        return route(self::routeName(), ['token' => $this->plainToken]);
+    }
 
-        return route($routeName, ['token' => $this->plainToken]);
+    /**
+     * Runs before anything is written or queued: otherwise the failure only
+     * surfaces in the worker, leaving a job that carries a live token.
+     */
+    public static function ensureUrlCanBeBuilt(): void
+    {
+        if (config('invitation.url_generator') || Route::has(self::routeName()) || self::buildsItsOwnUrl()) {
+            return;
+        }
+
+        throw InvitationConfigurationException::invitationUrlUnavailable(self::routeName());
+    }
+
+    private static function buildsItsOwnUrl(): bool
+    {
+        foreach (['toMail', 'generateUrl'] as $method) {
+            if ((new ReflectionMethod(static::class, $method))->class !== self::class) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function routeName(): string
+    {
+        return config('invitation.route_name', 'invitations.preview');
     }
 }

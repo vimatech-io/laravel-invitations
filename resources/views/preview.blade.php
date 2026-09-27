@@ -37,7 +37,7 @@
         @else
             <p>
                 @if(Route::has('login'))
-                    <a href="{{ route('login', ['invitation_token' => $token]) }}">{{ __('Log in to accept this invitation') }}</a>
+                    <a href="{{ route('login') }}">{{ __('Log in to accept this invitation') }}</a>
                 @else
                     <a href="#">{{ __('Log in to accept this invitation') }}</a>
                 @endif
