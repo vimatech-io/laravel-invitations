@@ -114,7 +114,7 @@ return [
     | dedicated key here decouples the two.
     |
     | To adopt one without invalidating tokens already sent, set it to your
-    | current APP_KEY value first — the hashes are identical — then rotate both
+    | current APP_KEY value first, which yields identical hashes. Rotate the two
     | independently once the outstanding invitations have expired.
     */
     'token_hmac_key' => env('INVITATION_TOKEN_HMAC_KEY'),

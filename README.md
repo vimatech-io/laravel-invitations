@@ -384,7 +384,7 @@ Configure in `config/invitation.php`:
 
 The **preview page** (`GET`) is public: anyone with the link can view the invitation details.
 
-The **accept route** (`POST`) does not enforce authentication by default. Two common patterns:
+The **accept route** (`POST`) does not carry an `auth` middleware by default, but it does not accept anonymously either: a guest is redirected to the named `login` route when one exists, otherwise back with an error. Two common patterns:
 
 - **Existing user**: Add `auth` middleware, then call `Invitations::accept($token, auth()->user())`
 - **New user**: Redirect to registration, then call `Invitations::acceptForNewUser($token, $newUser)` after signup, which verifies the registered email matches the invitation

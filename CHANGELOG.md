@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-09-27
+
+### Fixed
+
+- `cancel()`, `decline()`, `resend()` and the expiry marking inside `accept()` checked the status of the in-memory model and then wrote unconditionally. Starting from an instance loaded before a concurrent change, `cancel()` could record an already accepted invitation as cancelled while the acceptance stood, `decline()` could overwrite an acceptance, the expiry marking could overwrite a cancellation or an acceptance, and `resend()` could put an accepted (or cancelled) invitation back to pending with a new token, so it could be accepted a second time. Every transition is now a single `UPDATE` constrained to the statuses it is allowed to leave: `cancel()` from pending or expired, `resend()` from pending or expired, `decline()` and the acceptance itself from pending and not past `expires_at` (checked in the same statement), and the expiry marking from pending. When no row is updated, the model is refreshed and the exception matching the status actually stored is thrown (`InvitationAlreadyAcceptedException`, `InvitationCancelledException`, `InvitationDeclinedException`, `InvitationExpiredException`). Consequence for callers: `accept()` on an invitation cancelled concurrently now throws `InvitationCancelledException` instead of `InvitationAlreadyAcceptedException`.
+- `accept()` on an invitation already stored as expired no longer dispatches `InvitationExpired` again on every attempt. It is now dispatched once, when the status actually changes.
+- The status update and the acceptance handler (the `acceptedUsing()` callback or `invitation.acceptance_handler`) now run in one database transaction on the invitation model's connection. A handler that threw used to leave the invitation accepted with nothing created for it, and it could then never be accepted again. It now leaves the invitation pending instead. `InvitationAccepted` is dispatched after the transaction commits. Note for consumers: the handler runs inside a transaction, so a queued job it dispatches should use `afterCommit` if that job needs to read what the handler wrote.
+- The duplicate guard (`invitation.duplicates.allow_pending_for_same_email_and_subject` set to `false`) ignored `expires_at`, so an expired invitation still stored as pending blocked inviting the same address to the same subject again with `InvitationAlreadyExistsException`. Expired invitations no longer count towards the guard. They still appear in the `pending()` scope and in `pendingInvitations()`; that is unchanged.
+
+No public signature changes. There is nothing to do to adopt this release.
+
 ## [1.2.0] - 2026-09-01
 
 ### Added
@@ -15,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Resending an invitation now uses the same expiry rule as creating one. `resend()` computed `now()->addDays((int) config('invitation.expires_after_days', 7))`, and the inline default never applied because the key exists: an application configured with `null` — the documented setting for invitations that never expire — got `(int) null`, so the resent invitation expired the moment it was issued and the recipient was told it had expired. Both paths share one implementation.
-- The `Invitations` facade no longer caches the manager. The manager is a mutable builder and the facade held one instance, so a chain that was abandoned or that failed its duplicate check left its subject, inviter, expiry and metadata behind — and the next invitation built through the facade inherited them. An invitation could be created against the wrong subject with the wrong metadata. Under a worker process the same instance also spanned requests.
+- Resending an invitation now uses the same expiry rule as creating one. `resend()` computed `now()->addDays((int) config('invitation.expires_after_days', 7))`, and the inline default never applied because the key exists: an application configured with `null` (the documented setting for invitations that never expire) got `(int) null`, so the resent invitation expired the moment it was issued and the recipient was told it had expired. Both paths share one implementation.
+- The `Invitations` facade no longer caches the manager. The manager is a mutable builder and the facade held one instance, so a chain that was abandoned or that failed its duplicate check left its subject, inviter, expiry and metadata behind. The next invitation built through the facade then inherited them. An invitation could be created against the wrong subject with the wrong metadata. Under a worker process the same instance also spanned requests.
 
 ## [1.1.0] - 2026-06-26
 
