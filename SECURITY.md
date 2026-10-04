@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within Laravel Invitation, please send an email to **hello@adelzemzemi.com**.
+If you discover a security vulnerability within Laravel Invitations, please send an email to **hello@adelzemzemi.com**.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 

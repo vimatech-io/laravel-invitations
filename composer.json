@@ -2,6 +2,12 @@
     "name": "vimatech/laravel-invitation",
     "description": "Generic email-based invitations for Laravel. Invite anyone to any Eloquent model: teams, projects, workspaces. Fluent API, HMAC tokens, events, queued notifications, i18n.",
     "keywords": ["laravel", "invitation", "email", "invite"],
+    "homepage": "https://github.com/vimatech-io/laravel-invitations",
+    "support": {
+        "issues": "https://github.com/vimatech-io/laravel-invitations/issues",
+        "source": "https://github.com/vimatech-io/laravel-invitations",
+        "security": "https://github.com/vimatech-io/laravel-invitations/blob/main/SECURITY.md"
+    },
     "license": "MIT",
     "authors": [
         {
