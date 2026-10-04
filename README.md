@@ -14,7 +14,7 @@
 
 Generic email-based invitations for Laravel. Invite anyone to join, access, or accept an action related to any Eloquent model: Organization, Team, Project, Workspace, Document, and more.
 
-## Why Laravel Invitation?
+## Why Laravel Invitations?
 
 - Invite users to **any Eloquent model**: not just teams
 - Secure token-based workflow (HMAC by default)
@@ -22,7 +22,7 @@ Generic email-based invitations for Laravel. Invite anyone to join, access, or a
 - Extensible acceptance handlers and custom notifications
 - Production-ready with queued emails, i18n, and rate-limited routes
 
-## Quick Start
+## Quick start
 
 ```php
 // 1. Send an invitation
@@ -385,7 +385,15 @@ Configure in `config/invitation.php`:
     'middleware' => ['web'],
     'throttle' => 'throttle:30,1', // Per-IP rate limit. Set to null to disable.
 ],
+
+'route_names' => [
+    'preview' => 'invitations.preview',
+    'accept' => 'invitations.accept',
+    'decline' => 'invitations.decline',
+],
 ```
+
+`route_names` holds the route names that the preview view's accept and decline forms, and the controller's redirect for a guest, resolve. The package registers its routes under these default names, so change them only if you disable `routes.enabled` and register your own routes under other names.
 
 Disabling `routes.enabled` removes these three routes, and it also removes the route that `invitation.route_name` points to by default. `send()` and `resend()` then need `invitation.url_generator` set to build the invitation link; without it, they now throw `InvitationConfigurationException` before writing anything, rather than failing later in a queue worker.
 
@@ -460,6 +468,11 @@ return [
         'middleware' => ['web'],
         'throttle' => 'throttle:30,1',
     ],
+    'route_names' => [
+        'preview' => 'invitations.preview',
+        'accept' => 'invitations.accept',
+        'decline' => 'invitations.decline',
+    ],
     'route_name' => 'invitations.preview',
     'url_generator' => null,
     'duplicates' => [
@@ -502,15 +515,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Please see [CHANGELOG.md](CHANGELOG.md) for recent changes.
 
-## Security
+## Security Vulnerabilities
 
 If you discover a security vulnerability, please review our [security policy](SECURITY.md). **Do not** open a public GitHub issue.
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
 
 ## Credits
 
 Built and maintained by [Vimatech](https://vimatech.io).
 Created by [Adel Zemzemi](https://github.com/adelzemzemi).
-
-## License
-
-The MIT License (MIT). Please see [License File](LICENSE) for more information.

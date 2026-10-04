@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for considering contributing to Laravel Invitation!
+Thank you for considering contributing to Laravel Invitations!
 
 ## Development Setup
 
