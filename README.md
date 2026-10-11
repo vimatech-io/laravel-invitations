@@ -526,4 +526,4 @@ The MIT License (MIT). Please see [License File](LICENSE.md) for more informatio
 ## Credits
 
 Built and maintained by [Vimatech](https://vimatech.io).
-Created by [Adel Zemzemi](https://github.com/adelzemzemi).
+Created by [Adel Zemzemi](https://adelzemzemi.com/?utm_source=github&utm_medium=package&utm_campaign=laravel-invitations), Laravel SaaS architect.
