@@ -2,7 +2,7 @@
     "name": "vimatech/laravel-invitation",
     "description": "Generic email-based invitations for Laravel. Invite anyone to any Eloquent model: teams, projects, workspaces. Fluent API, HMAC tokens, events, queued notifications, i18n.",
     "keywords": ["laravel", "invitation", "email", "invite"],
-    "homepage": "https://github.com/vimatech-io/laravel-invitations",
+    "homepage": "https://vimatech.io/open-source/",
     "support": {
         "issues": "https://github.com/vimatech-io/laravel-invitations/issues",
         "source": "https://github.com/vimatech-io/laravel-invitations",
@@ -12,7 +12,8 @@
     "authors": [
         {
             "name": "Adel Zemzemi",
-            "email": "hello@adelzemzemi.com"
+            "email": "hello@adelzemzemi.com",
+            "homepage": "https://adelzemzemi.com/"
         }
     ],
     "require": {
